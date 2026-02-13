@@ -60,7 +60,7 @@
             display: block;
         }
         
-        .filters h2 {
+        .tab-content h2 {
             margin-top: 0;
             font-size: 16px;
             color: #555;
@@ -171,9 +171,6 @@
         .rep {
             background: #FADBD8;
         }
-        .changed {
-            background: #FFF3CD;
-        }
         .totals-row {
             background: #f0f0f0;
             font-weight: 600;
@@ -186,10 +183,6 @@
             text-align: center;
             color: #888;
             font-size: 12px;
-        }
-        .arrow {
-            color: #666;
-            font-weight: bold;
         }
         .same-cd {
             color: #888;
@@ -207,9 +200,10 @@
     <div class="tabs">
         <button class="tab active" onclick="showTab('district')">District Lookup</button>
         <button class="tab" onclick="showTab('comparison')">CD Comparison</button>
+        <button class="tab" onclick="showTab('movement')">CD Movement</button>
     </div>
 
-    <!-- Tab 1: District Lookup (original functionality) -->
+    <!-- Tab 1: District Lookup -->
     <div id="district-tab" class="tab-content active">
         <h2>Filter by District</h2>
         <div class="filter-row">
@@ -236,9 +230,9 @@
         </div>
     </div>
 
-    <!-- Tab 2: CD Comparison -->
+    <!-- Tab 2: CD Comparison (by Locality) -->
     <div id="comparison-tab" class="tab-content">
-        <h2>Compare Current CD → New CD</h2>
+        <h2>Compare Current CD → New CD (by Locality)</h2>
         <div class="filter-row">
             <div class="filter-group">
                 <label for="comp-locality">Locality</label>
@@ -264,6 +258,33 @@
         <div class="buttons">
             <button class="btn-primary" onclick="searchComparison()">Show Comparison</button>
             <button class="btn-secondary" onclick="clearComparisonFilters()">Clear</button>
+        </div>
+    </div>
+
+    <!-- Tab 3: CD Movement (Statewide Summary) -->
+    <div id="movement-tab" class="tab-content">
+        <h2>Statewide CD Movement Summary</h2>
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="move-current-cd">Current CD</label>
+                <select id="move-current-cd"><option value="">All Current CDs</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="move-new-cd">New CD</label>
+                <select id="move-new-cd"><option value="">All New CDs</option></select>
+            </div>
+            <div class="filter-group">
+                <label for="move-change">Change Type</label>
+                <select id="move-change">
+                    <option value="">All</option>
+                    <option value="changed">Changed CD Only</option>
+                    <option value="same">Same CD Only</option>
+                </select>
+            </div>
+        </div>
+        <div class="buttons">
+            <button class="btn-primary" onclick="searchMovement()">Show Movement</button>
+            <button class="btn-secondary" onclick="clearMovementFilters()">Clear</button>
         </div>
     </div>
 
@@ -295,8 +316,9 @@
     // Data arrays
     let DISTRICT_DATA = [];
     let COMPARISON_DATA = [];
+    let MOVEMENT_DATA = [];
 
-    // CSV DATA FOR DISTRICT LOOKUP - PLACEHOLDER
+    // CSV DATA FOR DISTRICT LOOKUP
     const DISTRICT_CSV = `New_CD,SD,SD_Member,SD_Party,HD,HD_Member,HD_Party,LOCALITYNAME,LOCALITY_CODE,PRECINCTNAME,PRECINCT_CODE_VALUE,Reg_Voters
 1,026,Ryan T. McDougle,R,060,Wyatt,R,HANOVER COUNTY,085,506 - GEORGETOWN,0506,2436
 1,026,Ryan T. McDougle,R,060,Wyatt,R,HANOVER COUNTY,085,507 - LAUREL MEADOW,0507,2605
@@ -3189,7 +3211,7 @@
 1,026,Ryan T. McDougle,R,060,Wyatt,R,HANOVER COUNTY,085,504 - STUDLEY,0504,1754
 1,026,Ryan T. McDougle,R,060,Wyatt,R,HANOVER COUNTY,085,505 - TOTOPOTOMOY,0505,699`;
 
-    // CSV DATA FOR CD COMPARISON
+    // CSV DATA FOR CD COMPARISON (by locality)
     const COMPARISON_CSV = `NewCD,CD,CD_Member,CD_Party,LOCALITYNAME,LOCALITY_CODE,PRECINCTNAME,PRECINCT_CODE_VALUE,Reg_Voters,Blocks,Split
 005,001,Rob Wittman,R,HENRICO COUNTY,087,101 - COALPIT,0101,4354,4354,No
 006,005,John McGuire,R,LYNCHBURG CITY,680,301 - THIRD WARD FIRST PRECINCT,0301,1417,1417,No
@@ -5881,6 +5903,51 @@
 009,009,Morgan Griffith,R,HENRY COUNTY,089,405 - MOUNTAIN VIEW,0405,886,886,No
 010,010,Suhas Subramanyam,D,LOUDOUN COUNTY,107,702 - PARK VIEW,0702,3761,3761,No`;
 
+    // CSV DATA FOR CD MOVEMENT (statewide summary)
+    const MOVEMENT_CSV = `NewCD,CD,CD_Member,CD_Party,Reg_Voters
+001,001,Rob Wittman,R,87709
+001,005,John McGuire,R,12000
+001,007,Eugene Vindman,D,343497
+001,008,Don Beyer,D,68094
+001,010,Suhas Subramanyam,D,13460
+001,011,James Walkinshaw,D,60496
+002,002,Jennifer Kiggans,R,555889
+002,003,Bobby Scott,D,37160
+003,001,Rob Wittman,R,10273
+003,002,Jennifer Kiggans,R,32094
+003,003,Bobby Scott,D,493838
+004,001,Rob Wittman,R,69377
+004,002,Jennifer Kiggans,R,9792
+004,004,Jennifer McClellan,D,375588
+004,005,John McGuire,R,124508
+005,001,Rob Wittman,R,277630
+005,004,Jennifer McClellan,D,197808
+005,005,John McGuire,R,126088
+006,005,John McGuire,R,262723
+006,006,Ben Cline,R,210723
+006,007,Eugene Vindman,D,47
+006,009,Morgan Griffith,R,100831
+007,005,John McGuire,R,84197
+007,006,Ben Cline,R,57175
+007,007,Eugene Vindman,D,96987
+007,008,Don Beyer,D,209474
+007,010,Suhas Subramanyam,D,43846
+007,011,James Walkinshaw,D,100451
+008,001,Rob Wittman,R,186929
+008,007,Eugene Vindman,D,141384
+008,008,Don Beyer,D,243117
+008,011,James Walkinshaw,D,4467
+009,005,John McGuire,R,4535
+009,006,Ben Cline,R,105521
+009,009,Morgan Griffith,R,473831
+010,006,Ben Cline,R,104622
+010,010,Suhas Subramanyam,D,340518
+010,011,James Walkinshaw,D,133201
+011,006,Ben Cline,R,95551
+011,008,Don Beyer,D,30751
+011,010,Suhas Subramanyam,D,170441
+011,011,James Walkinshaw,D,273842`;
+
     function parseCSV(csv) {
         const lines = csv.trim().split('\n');
         const headers = lines[0].split(',').map(h => h.trim());
@@ -5895,7 +5962,7 @@
                 });
                 // Parse numeric fields
                 row.Reg_Voters = parseInt(row.Reg_Voters) || 0;
-                row.Blocks = parseInt(row.Blocks) || 0;
+                if (row.Blocks !== undefined) row.Blocks = parseInt(row.Blocks) || 0;
                 if (row.New_CD !== undefined) row.New_CD = parseInt(row.New_CD) || 0;
                 if (row.NewCD !== undefined) row.NewCD = parseInt(row.NewCD) || 0;
                 if (row.CD !== undefined) row.CD = parseInt(row.CD) || 0;
@@ -5934,15 +6001,21 @@
             document.querySelectorAll('.tab')[0].classList.add('active');
             document.getElementById('district-tab').classList.add('active');
             document.getElementById('status').textContent = 'Select at least one filter and click "Show Totals"';
-        } else {
+            updateTableHeaders('district');
+        } else if (tabName === 'comparison') {
             document.querySelectorAll('.tab')[1].classList.add('active');
             document.getElementById('comparison-tab').classList.add('active');
             document.getElementById('status').textContent = 'Select filters and click "Show Comparison"';
+            updateTableHeaders('comparison');
+        } else if (tabName === 'movement') {
+            document.querySelectorAll('.tab')[2].classList.add('active');
+            document.getElementById('movement-tab').classList.add('active');
+            document.getElementById('status').textContent = 'Select filters and click "Show Movement"';
+            updateTableHeaders('movement');
         }
         
         // Clear results
         document.getElementById('results-body').innerHTML = '';
-        updateTableHeaders(tabName);
     }
 
     function updateTableHeaders(mode) {
@@ -5957,7 +6030,7 @@
                     <th class="num">Precincts</th>
                     <th class="num">Registered Voters</th>
                 </tr>`;
-        } else {
+        } else if (mode === 'comparison') {
             thead.innerHTML = `
                 <tr>
                     <th>Locality</th>
@@ -5966,6 +6039,15 @@
                     <th class="num">New CD</th>
                     <th>Change</th>
                     <th class="num">Precincts</th>
+                    <th class="num">Registered Voters</th>
+                </tr>`;
+        } else if (mode === 'movement') {
+            thead.innerHTML = `
+                <tr>
+                    <th class="num">New CD</th>
+                    <th class="num">Current CD</th>
+                    <th>Current Member</th>
+                    <th>Change</th>
                     <th class="num">Registered Voters</th>
                 </tr>`;
         }
@@ -6047,6 +6129,36 @@
         });
 
         const newCDSelect = document.getElementById('comp-new-cd');
+        newCDs.forEach(cd => {
+            const opt = document.createElement('option');
+            opt.value = cd;
+            opt.textContent = `New CD-${cd}`;
+            newCDSelect.appendChild(opt);
+        });
+    }
+
+    function populateMovementDropdowns() {
+        const currentCDs = [...new Set(MOVEMENT_DATA.map(d => d.CD))].sort((a, b) => a - b);
+        const newCDs = [...new Set(MOVEMENT_DATA.map(d => d.NewCD))].sort((a, b) => a - b);
+
+        // Get member info for current CDs
+        const cdMembers = {};
+        MOVEMENT_DATA.forEach(d => {
+            if (!cdMembers[d.CD]) {
+                cdMembers[d.CD] = { member: d.CD_Member, party: d.CD_Party };
+            }
+        });
+
+        const currentCDSelect = document.getElementById('move-current-cd');
+        currentCDs.forEach(cd => {
+            const opt = document.createElement('option');
+            opt.value = cd;
+            const info = cdMembers[cd];
+            opt.textContent = `CD-${cd} - ${info.member} (${info.party})`;
+            currentCDSelect.appendChild(opt);
+        });
+
+        const newCDSelect = document.getElementById('move-new-cd');
         newCDs.forEach(cd => {
             const opt = document.createElement('option');
             opt.value = cd;
@@ -6250,6 +6362,70 @@
         }
     }
 
+    function searchMovement() {
+        const currentCD = document.getElementById('move-current-cd').value;
+        const newCD = document.getElementById('move-new-cd').value;
+        const changeType = document.getElementById('move-change').value;
+
+        updateTableHeaders('movement');
+
+        // Filter data
+        let filtered = MOVEMENT_DATA.filter(d => {
+            if (currentCD && d.CD !== parseInt(currentCD)) return false;
+            if (newCD && d.NewCD !== parseInt(newCD)) return false;
+            if (changeType === 'changed' && d.CD === d.NewCD) return false;
+            if (changeType === 'same' && d.CD !== d.NewCD) return false;
+            return true;
+        });
+
+        // Sort results
+        let results = filtered.sort((a, b) => {
+            if (a.NewCD !== b.NewCD) return a.NewCD - b.NewCD;
+            return a.CD - b.CD;
+        });
+
+        // Calculate totals
+        const totalVoters = results.reduce((sum, r) => sum + r.Reg_Voters, 0);
+        const changedVoters = results.filter(r => r.CD !== r.NewCD).reduce((sum, r) => sum + r.Reg_Voters, 0);
+
+        // Update status
+        let statusText = `${results.length} CD combinations — ${totalVoters.toLocaleString()} total voters`;
+        if (changedVoters > 0 && changedVoters < totalVoters) {
+            statusText += ` (${changedVoters.toLocaleString()} changing CDs)`;
+        }
+        document.getElementById('status').textContent = statusText;
+
+        // Render results
+        const tbody = document.getElementById('results-body');
+        tbody.innerHTML = '';
+
+        results.forEach(r => {
+            const tr = document.createElement('tr');
+            const changed = r.CD !== r.NewCD;
+            const partyClass = r.CD_Party === 'D' ? 'dem' : (r.CD_Party === 'R' ? 'rep' : '');
+            
+            tr.innerHTML = `
+                <td class="num">${r.NewCD}</td>
+                <td class="num ${partyClass}">${r.CD}</td>
+                <td class="${partyClass}">${r.CD_Member} (${r.CD_Party})</td>
+                <td class="${changed ? 'diff-cd' : 'same-cd'}">${changed ? `CD-${r.CD} → CD-${r.NewCD}` : 'No change'}</td>
+                <td class="num">${r.Reg_Voters.toLocaleString()}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Add totals row
+        if (results.length > 1) {
+            const tr = document.createElement('tr');
+            tr.className = 'totals-row';
+            tr.innerHTML = `
+                <td colspan="4">Total</td>
+                <td class="num">${totalVoters.toLocaleString()}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
     function clearDistrictFilters() {
         document.getElementById('locality').value = '';
         document.getElementById('cd').value = '';
@@ -6268,12 +6444,22 @@
         document.getElementById('results-body').innerHTML = '';
     }
 
+    function clearMovementFilters() {
+        document.getElementById('move-current-cd').value = '';
+        document.getElementById('move-new-cd').value = '';
+        document.getElementById('move-change').value = '';
+        document.getElementById('status').textContent = 'Select filters and click "Show Movement"';
+        document.getElementById('results-body').innerHTML = '';
+    }
+
     // Initialize
     document.addEventListener('DOMContentLoaded', () => {
         DISTRICT_DATA = parseCSV(DISTRICT_CSV);
         COMPARISON_DATA = parseCSV(COMPARISON_CSV);
+        MOVEMENT_DATA = parseCSV(MOVEMENT_CSV);
         populateDistrictDropdowns();
         populateComparisonDropdowns();
+        populateMovementDropdowns();
     });
     </script>
 </body>
